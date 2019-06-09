@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 import rospy
+import numpy as np
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from scipy.spatial import KDTree
 
 import math
 
@@ -52,9 +54,10 @@ class WaypointUpdater(object):
 		# Get closest waypoint
 		closest_waypoint_idx = self.get_closest_waypoint_idx()
 		self.publish_waypoints(closest_waypoint_idx)
+		rospy.loginfo("loop(), publishing waypoints")
 	    rate.sleep()
 
-    def get_closest_waypoint_idx():
+    def get_closest_waypoint_idx(self):
 	x = self.pose.pose.position.x
 	y = self.pose.pose.position.y
 	closest_idx = self.waypoint_tree.query([x,y], 1)[1]
@@ -77,7 +80,7 @@ class WaypointUpdater(object):
     def publish_waypoints(self, closest_idx):
 	lane = Lane()
 	lane.header = self.base_waypoints.header
-	lane.waypoints = self.base_waypoints[closest_idx:closest_idx+LOOKAHEAD_WPS]
+	lane.waypoints = self.base_waypoints.waypoints[closest_idx:closest_idx+LOOKAHEAD_WPS]
 	self.final_waypoints_pub.publish(lane)
 
     def pose_cb(self, msg):
@@ -88,7 +91,7 @@ class WaypointUpdater(object):
         #rospy.loginfo("Inside waypoints_cb()");
 	self.base_waypoints = waypoints
 	if not self.waypoints_2d:
-	    self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.y] for waypoint in waypoints.waypoints]
+	    self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in waypoints.waypoints]
 	    self.waypoint_tree = KDTree(self.waypoints_2d)
 
     def traffic_cb(self, msg):
