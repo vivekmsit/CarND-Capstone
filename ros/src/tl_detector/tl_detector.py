@@ -10,6 +10,7 @@ from light_classification.tl_classifier import TLClassifier
 import tf
 import cv2
 import yaml
+import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -90,28 +91,40 @@ class TLDetector(object):
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
-    def get_closest_waypoint(self, pose):
-        """Identifies the closest path waypoint to the given position
-            https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
-        Args:
-            pose (Pose): position to match a waypoint to
+    def get_distance(self, x1, y1, x2, y2):
+        return math.sqrt((x1 -x2)**2 + (y1 - y2)**2)
 
-        Returns:
-            int: index of the closest waypoint in self.waypoints
+    def get_closest_waypoint(self, position_x, position_y):
+	index = -1
+        #Return if way points are empty
+        if self.waypoints is None:
+            return index
 
-        """
-        #TODO implement
-        return 0
+	position = np.asarray([position_x, position_y])
+        dist_squared = np.sum((self.waypoints_array - position)**2, axis=1)
+        index = np.argmin(dist_squared)
+	return index
+
+    def get_nearest_traffic_light(self, waypoint_start_index):
+        traffic_light = None
+        traffic_light_positions = self.config['light_positions']
+        #traffic_light_positions = self.config['manual_light_positions']
+        last_index = sys.maxsize
+
+        for i in range(0, len(traffic_light_positions)):
+            index = self.get_closest_waypoint(float(traffic_light_positions[i][0]), float(traffic_light_positions[i][1]))
+            if index > waypoint_start_index and index < last_index:
+                last_index = index;
+                traffic_light = traffic_light_positions[i]
+
+        return traffic_light, last_index
 
     def get_light_state(self, light):
         """Determines the current color of the traffic light
-
         Args:
             light (TrafficLight): light to classify
-
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
-
         """
         if(not self.has_image):
             self.prev_light_loc = None
@@ -136,14 +149,23 @@ class TLDetector(object):
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
-            car_position = self.get_closest_waypoint(self.pose.pose)
+            car_position = self.get_closest_waypoint(self.pose.position.x, self.pose.position.y)
+	    #find the closest visible traffic light (if one exists)
+	    if car_position > 0:
+		light_pos, light_waypoint = self.get_nearest_traffic_light(car_position)
+		if light_pos:
+		    state = TrafficLight.UNKNOWN
+		    if rospy.get_param('~use_classifier', False):
+                        state = self.get_light_state(light_pos[0], light_pos[1], light_pos[2] if len(light_pos) >= 3 else 0.)
+                    else:
+			for light in self.lights:
+                            ''' If position of the light from the yaml file and one roperted via
+                                /vehicle/traffic_lights differs only within 30 m consider them as same '''
+                            if self.get_distance(light.pose.pose.position.x, light.pose.pose.position.y, light_pos[0], light_pos[1]) < 30:
+                                state = light.state
 
-        #TODO find the closest visible traffic light (if one exists)
+                    return light_waypoint, state
 
-        if light:
-            state = self.get_light_state(light)
-            return light_wp, state
-        self.waypoints = None
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':

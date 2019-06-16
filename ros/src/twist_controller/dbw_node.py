@@ -102,6 +102,7 @@ class DBWNode(object):
 		    rospy.loginfo("loop() throttle: %f, brake: %f and steering: %f", self.throttle, self.brake, self.steering)
 		    self.publish(self.throttle, self.brake, self.steering)
 		if not self.dbw_enabled:
+		    rospy.loginfo("loop(), resetting controller")
 		    self.controller.reset()
             rate.sleep()
 

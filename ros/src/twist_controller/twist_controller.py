@@ -39,11 +39,12 @@ class Controller(object):
 	
 
     def control(self, current_vel, linear_vel, angular_vel, cross_track_error, duration_in_seconds):
-	current_vel = self.vel_lpf.filt(current_vel)
+	#current_vel = self.vel_lpf.filt(current_vel)
 	linear_velocity_error = linear_vel - current_vel
 	velocity_correction = self.linear_pid_controller.step(linear_velocity_error, duration_in_seconds)
 	brake = 0
 	throttle = velocity_correction
+	rospy.loginfo("throttle is: %f", throttle)
 	if (throttle < 0):
 	    deceleration = abs(throttle)
 	    brake = (self.vehicle_mass + self.fuel_capacity * GAS_DENSITY) * self.wheel_radius * deceleration if deceleration > self.brake_deadband else 0.
