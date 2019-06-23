@@ -145,10 +145,16 @@ class TLDetector(object):
             self.prev_light_loc = None
             return False
 
+	# If simulator is used instead of real vehicle, return state received from /vehicle/traffic_lights
+	if not rospy.get_param('~use_classifier', False):
+	    return light.state
+
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         #Get classification
-        return self.light_classifier.get_classification(cv_image)
+	image, tl_index = self.light_classifier.get_classification(cv_image)
+	rospy.loginfo("TLDetector::get_light_state(), tl_index is: %d", tl_index)
+        return tl_index
 
 
     def print_light_state(self, state):
@@ -172,32 +178,37 @@ class TLDetector(object):
 
         """
 	rospy.loginfo("TLDetector::process_traffic_lights()")
-        light = None
+
+	closest_light = None
+        line_wp_idx = None
 
         # List of positions that correspond to the line to stop in front of for a given intersection
-        #stop_line_positions = self.config['stop_line_positions']
-        if(self.pose):
+        stop_line_positions = self.config['stop_line_positions']
+        if self.pose and self.waypoints:
             car_position = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
 	    #find the closest visible traffic light (if one exists)
 	    if car_position > 0:
-		light_pos, light_waypoint = self.get_nearest_traffic_light(car_position)
-		if light_pos:
-		    state = TrafficLight.UNKNOWN
-		    if not rospy.get_param('~use_classifier', False):
-			rospy.loginfo("TLDetector::process_traffic_lights(), using classifier to get traffic light state")
-                        state = self.get_light_state(light_pos[0], light_pos[1], light_pos[2] if len(light_pos) >= 3 else 0.)
-                    else:
-			rospy.loginfo("TLDetector::process_traffic_lights(), using traffic lights data to get traffic light state")
-			for light in self.lights:
-                            ''' If position of the light from the yaml file and one roperted via
-                                /vehicle/traffic_lights differs only within 30 m consider them as same '''
-                            if self.get_distance(light.pose.pose.position.x, light.pose.pose.position.y, light_pos[0], light_pos[1]) < 30:
-                                state = light.state
-		    rospy.loginfo("TLDetector::process_traffic_lights(), current light state is: %d", state)
-		    self.print_light_state(state)
-                    return light_waypoint, state
+		diff = len(self.waypoints.waypoints)
+                for i, light in enumerate(self.lights):
+                    # Get stop line waypoint index
+                    line = stop_line_positions[i]
+                    temp_wp_idx = self.get_closest_waypoint(line[0], line[1])
+                    # Find closest stop line waypoint index
+                    d = temp_wp_idx - car_position
+                    if d >= 0 and d < diff:
+                        diff = d
+                        closest_light = light
+                        line_wp_idx = temp_wp_idx
 
-        return -1, TrafficLight.UNKNOWN
+                if closest_light:
+                    state = self.get_light_state(closest_light)
+                    return line_wp_idx, state
+	else: #just process the image
+	    state = self.get_light_state(closest_light)
+
+	#self.waypoints = None
+        #return -1, TrafficLight.UNKNOWN
+	return -1, state
 
 if __name__ == '__main__':
     try:
