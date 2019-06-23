@@ -13,6 +13,7 @@ import six.moves.urllib as urllib
 
 class TLClassifier(object):
     def __init__(self, download=False):
+	rospy.loginfo("TLClassifier::__init__() start, %d", download)
         #self.MODEL_NAME = 'ssd_mobilenet_v1_coco_11_06_2017'
         #self.MODEL_NAME = 'ssd_mobilenet_v1_coco_2017_11_17'
         self.MODEL_NAME = 'ssdlite_mobilenet_v2_coco_2018_05_09'
@@ -49,9 +50,11 @@ class TLClassifier(object):
             self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
             self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
             self.num_detections = self.detection_graph.get_tensor_by_name('num_detections:0')
+	rospy.loginfo("TLClassifier::__init__() end")
 
     def download_coco_model(self):
         """Downloads coco model"""
+	rospy.loginfo("TLClassifier::download_coco_model()")
         MODEL_FILE = self.MODEL_NAME + '.tar.gz'
         DOWNLOAD_BASE = 'http://download.tensorflow.org/models/object_detection/'
         if os.path.exists(MODEL_FILE):
@@ -81,6 +84,7 @@ class TLClassifier(object):
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
         """
+	rospy.loginfo("TLClassifier::get_classification()")
         if self.correct_gamma:
             if self.gamma == 1.0:
                 self.gamma = 0.6
@@ -113,7 +117,7 @@ class TLClassifier(object):
                     best_scores.append([scores[idx], idx, classID])
                     detected = True
 
-        tl_index = -1
+        tl_index = TrafficLight.UNKNOWN
         if detected:
             best_scores.sort(key=lambda tup: tup[0], reverse=True)
 
