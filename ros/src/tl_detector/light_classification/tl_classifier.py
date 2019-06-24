@@ -84,7 +84,7 @@ class TLClassifier(object):
         Returns:
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
         """
-	rospy.loginfo("TLClassifier::get_classification()")
+	#rospy.loginfo("TLClassifier::get_classification()")
         if self.correct_gamma:
             if self.gamma == 1.0:
                 self.gamma = 0.6
@@ -122,7 +122,7 @@ class TLClassifier(object):
             best_scores.sort(key=lambda tup: tup[0], reverse=True)
 
             best_score = best_scores[0]
-            rospy.loginfo("number of TL found %d, best score: %f, color: %f", len(best_scores), best_score[0], best_score[2])
+            #rospy.loginfo("TLClassifier::get_classification(), number of TL found %d, best score: %f, color: %f", len(best_scores), best_score[0], best_score[2])
             nbox = boxes[best_score[1]]
 
             height = image.shape[0]
@@ -132,11 +132,11 @@ class TLClassifier(object):
             box_height = box[2] - box[0]
             box_width = box[3] - box[1]
             ratio = float(box_height)/float(box_width)
-            rospy.loginfo("ratio: %f", ratio)
+            #rospy.loginfo("TLClassifier::get_classification(), ratio: %f", ratio)
             if ratio >= 2.0 and ratio < 3.0: #started from 2.4
                 tl_cropped = image[box[0]:box[2], box[1]:box[3]]
                 tl_color, tl_index = self.get_color(tl_cropped)
-                rospy.loginfo("color is: %s", tl_color)
+                #rospy.loginfo("TLClassifier::get_classification(), color is: %s", tl_color)
                 #augment image with detected TLs
                 cv2.rectangle(image, (box[1], box[0]), (box[3], box[2]), (0, 255, 0), 2)
                 font = cv2.FONT_HERSHEY_SIMPLEX

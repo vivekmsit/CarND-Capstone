@@ -82,10 +82,11 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
 
         """
-	rospy.loginfo("TLDetector::image_cb()")
+	#rospy.loginfo("TLDetector::image_cb()")
         self.has_image = True
         self.camera_image = msg
         light_wp, state = self.process_traffic_lights()
+	rospy.loginfo("TLDetector::image_cb(), light wp is: %d and state is: %d", light_wp, state)
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -96,12 +97,15 @@ class TLDetector(object):
         if self.state != state:
             self.state_count = 0
             self.state = state
+	    #rospy.loginfo("TLDetector::image_cb(), state change first time, no publishing")
         elif self.state_count >= STATE_COUNT_THRESHOLD:
             self.last_state = self.state
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
+	    #rospy.loginfo("TLDetector::image_cb(), no state change for more than threshold times, publishing value")
         else:
+	    #rospy.loginfo("TLDetector::image_cb(), state change for less than threshold times, publishing old value")
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
         self.state_count += 1
 
@@ -146,24 +150,24 @@ class TLDetector(object):
             return False
 
 	# If simulator is used instead of real vehicle, return state received from /vehicle/traffic_lights
-	if not rospy.get_param('~use_classifier', False):
-	    return light.state
+	#if not rospy.get_param('~use_classifier', False):
+	 #   return light.state
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         #Get classification
 	image, tl_index = self.light_classifier.get_classification(cv_image)
-	rospy.loginfo("TLDetector::get_light_state(), tl_index is: %d", tl_index)
+	#rospy.loginfo("TLDetector::get_light_state(), tl_index is: %d", tl_index)
         return tl_index
 
 
     def print_light_state(self, state):
 	if state == TrafficLight.RED: #0
 	    rospy.loginfo("TLDetector::print_light_state(), light state is RED")
-	elif state == TrafficLight.GREEN: #1
-	    rospy.loginfo("TLDetector::print_light_state(), light state is GREEN")
-	elif state == TrafficLight.YELLOW: #2
+	elif state == TrafficLight.YELLOW: #1
 	    rospy.loginfo("TLDetector::print_light_state(), light state is YELLOW")
+	elif state == TrafficLight.GREEN: #2
+	    rospy.loginfo("TLDetector::print_light_state(), light state is GREEN")
 	else: #-1
 	    rospy.loginfo("TLDetector::print_light_state(), light state is UNKNOWN")
 
@@ -177,7 +181,7 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-	rospy.loginfo("TLDetector::process_traffic_lights()")
+	#rospy.loginfo("TLDetector::process_traffic_lights()")
 
 	closest_light = None
         line_wp_idx = None
