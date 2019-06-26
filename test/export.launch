@@ -1,0 +1,6 @@
+<launch>
+      <node pkg="rosbag" type="play" name="rosbag" required="true" args="/home/robond/Downloads/ros_bag_data/data.bag"/>
+      <node name="extract" pkg="image_view" type="extract_images" respawn="false" required="true" output="screen" cwd="ROS_HOME">
+        <remap from="image" to="/image_color"/>
+      </node>
+</launch>

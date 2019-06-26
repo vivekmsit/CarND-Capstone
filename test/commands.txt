@@ -1,0 +1,18 @@
+<< Make and Run>>
+
+cd ros
+catkin_make
+source devel/setup.bash
+roslaunch launch/styx.launch
+
+<< ROS commands>>
+
+rosnode list (list all running nodes)
+
+rostopic list (list all current topics)
+
+rostopic info /twist_cmd (list info about particular topic)
+
+rosmsg info geometry_msgs/TwistStamped (list message info/type about particular message)
+
+
